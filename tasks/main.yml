@@ -1,0 +1,32 @@
+---
+- name: "Verify if EPEL repo is already configured."
+  stat: path={{ epel_repofile_path }}
+  register: epel_repofile_result
+
+- name: "Configure EPEL repo."
+  yum:
+    name: "{{ epel_repo_url }}"
+    state: present
+  register: epel_repo_configuration_result
+  when: not epel_repofile_result.stat.exists
+
+- name: "Disable EPEL repositories"
+  ini_file:
+    dest: "{{ epel_repofile_path }}"
+    section: "{{ item }}"
+    option: enabled
+    value: "{{ epel_repo_enable }}"
+  with_items:
+     - epel
+     - epel-debuginfo
+     - epel-source
+     - epel-testing
+     - epel-testing-debuginfo
+     - epel-testing-source
+  when: epel_repo_configuration_result is succeeded
+ 
+- name: Configure EPEL GPG key.
+  rpm_key:
+    key: "{{ epel_repo_gpg_key_url }}"
+    state: present
+  when: not epel_repofile_result.stat.exists
